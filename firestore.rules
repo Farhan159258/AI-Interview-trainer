@@ -1,0 +1,71 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // ---- users/{uid} ----
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId);
+      allow update: if isOwner(userId)
+                    // Prevent client-side XP/level tampering — only
+                    // Cloud Functions / server (Admin SDK) can touch these.
+                    && !request.resource.data.diff(resource.data).affectedKeys()
+                         .hasAny(['xp', 'level', 'achievements']);
+      allow delete: if false;
+
+      match /plans/{planId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // ---- resumes/{resumeId} ----
+    match /resumes/{resumeId} {
+      allow read, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Writes happen server-side via Admin SDK (bypasses rules) after
+      // parsing — clients should not write parsed resume data directly.
+      allow create, update: if false;
+    }
+
+    // ---- interviews/{interviewId} ----
+    match /interviews/{interviewId} {
+      allow read, update, delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    // ---- coding_interviews/{submissionId} ----
+    match /coding_interviews/{submissionId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // ---- reports/{reportId} ----
+    match /reports/{reportId} {
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      // Reports are generated and written server-side via Admin SDK only.
+      allow create, update, delete: if false;
+    }
+
+    // ---- analytics/{userId} ----
+    match /analytics/{userId} {
+      allow read: if isOwner(userId);
+      // Aggregated by a server-side job / Cloud Function.
+      allow write: if false;
+    }
+
+    // ---- achievements/{achievementId} (read-only catalog) ----
+    match /achievements/{achievementId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
