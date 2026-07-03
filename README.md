@@ -29,7 +29,7 @@ interviewer's voice).
 | Frontend | Next.js 15 (App Router), TypeScript, Tailwind CSS, Framer Motion, Zustand, React Hook Form + Zod, Recharts |
 | Backend | Next.js Route Handlers (REST) |
 | Auth & DB | Firebase Authentication, Firestore, Firestore Security Rules |
-| AI | OpenAI GPT (chat completions), Whisper (STT), TTS |
+| AI | Groq (free, OpenAI-API-compatible) for chat + transcription by default — swappable to OpenAI. Optional OpenAI TTS, with automatic browser SpeechSynthesis fallback |
 | Code editor | Monaco Editor |
 | Deployment | Vercel |
 
@@ -86,4 +86,4 @@ firestore.rules, firestore.indexes.json, firebase.json
 
 ## License
 
-MIT — use this for your portfolio, resume projects, or as a starting point for something bigger.
+MIT — use this for your portfolio.
