@@ -21,11 +21,39 @@
    firebase deploy --only firestore:rules,firestore:indexes
    ```
 
-## 2. OpenAI setup
+## 2. AI provider setup (free by default)
 
-1. Create an API key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys).
-2. Set `OPENAI_API_KEY`. Defaults use `gpt-4o-mini`, `tts-1`, and `whisper-1` — override via `OPENAI_MODEL` / `OPENAI_TTS_MODEL` / `OPENAI_WHISPER_MODEL` if you want different models.
-3. Set usage limits/budget alerts in the OpenAI dashboard — this app calls the API on question generation, answer evaluation, resume parsing, coding review, and coaching, so cost scales with usage.
+This app uses **Groq** by default for question generation, answer evaluation, resume
+parsing, coaching, and voice transcription — it's free, has no expiring trial credit, and
+its API is OpenAI-compatible, so no code changes are needed to use it.
+
+1. Create a free account at [console.groq.com](https://console.groq.com) → **API Keys** → create a key.
+2. Set in `.env.local`:
+   ```
+   AI_PROVIDER=groq
+   AI_API_KEY=gsk_...
+   AI_BASE_URL=https://api.groq.com/openai/v1
+   AI_CHAT_MODEL=llama-3.3-70b-versatile
+   AI_WHISPER_MODEL=whisper-large-v3
+   ```
+3. That's it — no billing setup required. Groq's free tier is rate-limited (requests per
+   minute), not paid, so if you hit a 429 during heavy testing, wait a minute and retry.
+
+**Text-to-speech is the one piece with no solid free equivalent.** By default it's
+disabled and the voice interview page automatically falls back to the browser's built-in
+`SpeechSynthesis` API — no key, no cost, works out of the box in Chrome/Edge/Safari. If you
+want the more natural OpenAI TTS voice instead, add a paid OpenAI key:
+```
+OPENAI_TTS_API_KEY=sk-...
+```
+
+**Switching to OpenAI for everything instead (paid):**
+```
+AI_PROVIDER=openai
+AI_API_KEY=sk-...
+AI_CHAT_MODEL=gpt-4o-mini
+AI_WHISPER_MODEL=whisper-1
+```
 
 ## 3. (Optional) Code execution sandbox
 
