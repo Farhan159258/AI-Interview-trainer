@@ -86,4 +86,4 @@ firestore.rules, firestore.indexes.json, firebase.json
 
 ## License
 
-MIT — use this for your portfolio, resume projects, or as a starting point for something bigger.
+MIT — use this for your portfolio.
