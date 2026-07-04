@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { Target, TrendingUp, Award, Flame, Plus } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { getUserInterviews, getAnalytics } from '@/firebase/firestore';
@@ -14,24 +15,62 @@ import { Badge } from '@/components/ui/Badge';
 import type { Interview, AnalyticsSnapshot } from '@/types';
 
 export default function DashboardPage() {
+  const router = useRouter();
   const { user, firebaseUid, loading } = useAuthStore();
   const [interviews, setInterviews] = useState<Interview[]>([]);
   const [analytics, setAnalytics] = useState<AnalyticsSnapshot | null>(null);
   const [fetching, setFetching] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Auth has finished resolving but there's no signed-in user — bounce to
+  // login instead of showing an infinite spinner. This happens if the
+  // `session_active` cookie exists (so middleware let the page load) but
+  // the actual Firebase session didn't restore (expired, cleared storage,
+  // third-party cookie blocking, etc).
+  useEffect(() => {
+    if (!loading && !firebaseUid) {
+      router.replace('/login?redirect=/dashboard');
+    }
+  }, [loading, firebaseUid, router]);
 
   useEffect(() => {
     if (!firebaseUid) return;
     (async () => {
       setFetching(true);
-      const [i, a] = await Promise.all([getUserInterviews(firebaseUid), getAnalytics(firebaseUid)]);
-      setInterviews(i);
-      setAnalytics(a);
-      setFetching(false);
+      setError(null);
+      try {
+        const [i, a] = await Promise.all([getUserInterviews(firebaseUid), getAnalytics(firebaseUid)]);
+        setInterviews(i);
+        setAnalytics(a);
+      } catch (err) {
+        console.error('[Dashboard] failed to load data:', err);
+        setError(
+          err instanceof Error ? err.message : 'Failed to load dashboard data. Check the console for details.'
+        );
+      } finally {
+        setFetching(false);
+      }
     })();
   }, [firebaseUid]);
 
-  if (loading || fetching) {
+  // Still resolving Firebase auth, or waiting to redirect a signed-out user.
+  if (loading || (!firebaseUid && !error)) {
     return <div className="mx-auto max-w-7xl px-6 py-16 text-center text-white/40">Loading your dashboard…</div>;
+  }
+
+  if (fetching) {
+    return <div className="mx-auto max-w-7xl px-6 py-16 text-center text-white/40">Loading your dashboard…</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="mx-auto max-w-7xl px-6 py-16 text-center">
+        <p className="text-sm text-danger">{error}</p>
+        <p className="mt-2 text-xs text-white/40">
+          If this mentions "requires an index," run <code className="text-white/60">firebase deploy --only firestore:indexes</code> and wait a minute for it to finish building.
+        </p>
+      </div>
+    );
   }
 
   const totalInterviews = analytics?.totalInterviews ?? interviews.length;

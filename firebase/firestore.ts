@@ -36,6 +36,20 @@ export const COLLECTIONS = {
   reports: 'reports',
 } as const;
 
+/**
+ * Firestore's setDoc/updateDoc throw "Unsupported field value: undefined"
+ * if ANY field — at any depth — is explicitly `undefined` (as opposed to
+ * just omitted). Our types use optional fields like `photoURL?`,
+ * `customRoleTitle?`, and `resumeId?` that often get assigned `?? undefined`
+ * in the UI, so every write goes through this first to strip those out
+ * instead of throwing. (JSON.stringify already drops undefined-valued
+ * keys at every depth, so round-tripping through it is a simple, safe way
+ * to clean arbitrarily nested objects.)
+ */
+function stripUndefined<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value));
+}
+
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
   const snap = await getDoc(doc(db, COLLECTIONS.users, uid));
   return snap.exists() ? (snap.data() as UserProfile) : null;
@@ -44,13 +58,13 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
 export async function upsertUserProfile(uid: string, data: Partial<UserProfile>) {
   await setDoc(
     doc(db, COLLECTIONS.users, uid),
-    { ...data, updatedAt: new Date().toISOString() },
+    stripUndefined({ ...data, updatedAt: new Date().toISOString() }),
     { merge: true }
   );
 }
 
 export async function saveResume(resume: ParsedResume) {
-  await setDoc(doc(db, COLLECTIONS.resumes, resume.id), resume);
+  await setDoc(doc(db, COLLECTIONS.resumes, resume.id), stripUndefined(resume));
 }
 
 export async function getUserResumes(userId: string): Promise<ParsedResume[]> {
@@ -64,12 +78,12 @@ export async function getUserResumes(userId: string): Promise<ParsedResume[]> {
 }
 
 export async function createInterview(interview: Interview) {
-  await setDoc(doc(db, COLLECTIONS.interviews, interview.id), interview);
+  await setDoc(doc(db, COLLECTIONS.interviews, interview.id), stripUndefined(interview));
   return interview;
 }
 
 export async function updateInterview(id: string, data: Partial<Interview>) {
-  await updateDoc(doc(db, COLLECTIONS.interviews, id), data as Record<string, unknown>);
+  await updateDoc(doc(db, COLLECTIONS.interviews, id), stripUndefined(data) as Record<string, unknown>);
 }
 
 export async function getInterview(id: string): Promise<Interview | null> {
@@ -93,11 +107,11 @@ export async function deleteInterview(id: string) {
 }
 
 export async function saveCodingSubmission(sub: CodingSubmission) {
-  await setDoc(doc(db, COLLECTIONS.codingInterviews, sub.id), sub);
+  await setDoc(doc(db, COLLECTIONS.codingInterviews, sub.id), stripUndefined(sub));
 }
 
 export async function saveReport(report: InterviewReport) {
-  await setDoc(doc(db, COLLECTIONS.reports, report.id), report);
+  await setDoc(doc(db, COLLECTIONS.reports, report.id), stripUndefined(report));
 }
 
 export async function getAnalytics(userId: string): Promise<AnalyticsSnapshot | null> {
@@ -108,7 +122,7 @@ export async function getAnalytics(userId: string): Promise<AnalyticsSnapshot | 
 export async function upsertAnalytics(userId: string, data: Partial<AnalyticsSnapshot>) {
   await setDoc(
     doc(db, COLLECTIONS.analytics, userId),
-    { ...data, updatedAt: new Date().toISOString() },
+    stripUndefined({ ...data, updatedAt: new Date().toISOString() }),
     { merge: true }
   );
 }
