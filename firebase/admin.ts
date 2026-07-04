@@ -29,6 +29,12 @@ function getAdminApp(): App {
 export const adminApp = getAdminApp();
 export const adminAuth = getAuth(adminApp);
 export const adminDb = getFirestore(adminApp);
+// Without this, the Admin SDK throws "Cannot use 'undefined' as a Firestore
+// value" for any optional field left unset (e.g. a report field the model
+// happened to omit) — same class of bug as the client-side stripUndefined
+// fix in firebase/firestore.ts, just needed here too since Admin SDK writes
+// go through a different code path.
+adminDb.settings({ ignoreUndefinedProperties: true });
 
 /**
  * Verifies the Firebase ID token sent from the client in the

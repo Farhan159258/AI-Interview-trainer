@@ -92,11 +92,15 @@ export default function VoiceInterviewPage() {
         setIndex(index + 1);
       } else {
         const finishToken = await getAuthToken();
-        await fetch('/api/reports/generate', {
+        const finishRes = await fetch('/api/reports/generate', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${finishToken}` },
           body: JSON.stringify({ interviewId: interview.id }),
         });
+        if (!finishRes.ok) {
+          const body = await finishRes.json().catch(() => ({}));
+          console.error('[Report generation] failed:', body.error);
+        }
         router.push(`/results/${interview.id}`);
       }
     } finally {

@@ -95,9 +95,14 @@ export default function DashboardPage() {
           </h1>
           <p className="mt-1 text-sm text-white/50">Here's how your interview practice is trending.</p>
         </div>
-        <Link href="/interview/new">
-          <Button><Plus className="h-4 w-4" /> New interview</Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href="/resume">
+            <Button variant="secondary">Upload resume</Button>
+          </Link>
+          <Link href="/interview/new">
+            <Button><Plus className="h-4 w-4" /> New interview</Button>
+          </Link>
+        </div>
       </div>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

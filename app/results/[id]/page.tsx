@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { CheckCircle2, XCircle, Sparkles, Loader2 } from 'lucide-react';
+import { CheckCircle2, XCircle, Sparkles } from 'lucide-react';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -23,12 +23,47 @@ const RECOMMENDATION_TONE: Record<string, 'success' | 'accent' | 'warn' | 'dange
 export default function ResultsPage() {
   const { id } = useParams<{ id: string }>();
   const [interview, setInterview] = useState<Interview | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [plan, setPlan] = useState<LearningPlan | null>(null);
   const [loadingPlan, setLoadingPlan] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+
+  const loadInterview = async () => {
+    try {
+      const data = await getInterview(id);
+      setInterview(data);
+      setLoadError(null);
+    } catch (err) {
+      console.error('[Results] failed to load interview:', err);
+      setLoadError(err instanceof Error ? err.message : 'Failed to load this interview.');
+    }
+  };
 
   useEffect(() => {
-    (async () => setInterview(await getInterview(id)))();
+    loadInterview();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  const retryReport = async () => {
+    setRetrying(true);
+    try {
+      const token = await getAuthToken();
+      const res = await fetch('/api/reports/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ interviewId: id }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Failed to generate report');
+      }
+      await loadInterview();
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Failed to generate report.');
+    } finally {
+      setRetrying(false);
+    }
+  };
 
   const generatePlan = async () => {
     setLoadingPlan(true);
@@ -44,6 +79,15 @@ export default function ResultsPage() {
       setLoadingPlan(false);
     }
   };
+
+  if (loadError) {
+    return (
+      <div className="mx-auto max-w-3xl px-6 py-16 text-center">
+        <p className="text-sm text-danger">{loadError}</p>
+        <Button className="mt-4" onClick={loadInterview}>Try again</Button>
+      </div>
+    );
+  }
 
   if (!interview) {
     return <div className="mx-auto max-w-3xl px-6 py-16 text-center text-white/40">Loading report…</div>;
@@ -69,8 +113,13 @@ export default function ResultsPage() {
       </div>
 
       {!report ? (
-        <GlassPanel className="mt-8 flex items-center gap-3 p-6 text-white/50">
-          <Loader2 className="h-4 w-4 animate-spin" /> Report is still being generated…
+        <GlassPanel className="mt-8 flex flex-col items-center gap-3 p-6 text-center text-white/50">
+          <p>Your report hasn't been generated yet.</p>
+          <p className="text-xs text-white/30">
+            This can happen if the report generation call failed right after your last answer —
+            check the browser console for details, then retry below.
+          </p>
+          <Button onClick={retryReport} loading={retrying}>Generate report now</Button>
         </GlassPanel>
       ) : (
         <>

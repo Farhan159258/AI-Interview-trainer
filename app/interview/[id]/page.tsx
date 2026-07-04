@@ -89,11 +89,17 @@ export default function TextInterviewPage() {
 
   const finishInterview = async (finalInterview: Interview) => {
     const token = await getAuthToken();
-    await fetch('/api/reports/generate', {
+    const res = await fetch('/api/reports/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ interviewId: finalInterview.id }),
     });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      console.error('[Report generation] failed:', body.error);
+      // Navigate anyway — the results page detects a missing report and
+      // offers a "Retry" button rather than trapping the person here.
+    }
     router.push(`/results/${finalInterview.id}`);
   };
 
