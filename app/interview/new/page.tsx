@@ -38,7 +38,7 @@ function Pill({ active, onClick, children }: { active: boolean; onClick: () => v
   );
 }
 
-export default function NewInterviewPage() {
+function NewInterviewForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const resumeId = searchParams.get('resumeId') ?? undefined;
