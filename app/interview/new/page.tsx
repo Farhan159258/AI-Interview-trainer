@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, ArrowRight } from 'lucide-react';
 import { GlassPanel } from '@/components/ui/GlassPanel';
@@ -167,5 +167,19 @@ function NewInterviewForm() {
         </Button>
       </GlassPanel>
     </div>
+  );
+}
+
+// Next.js requires any component that calls useSearchParams() to be wrapped
+// in a <Suspense> boundary, or static prerendering fails at build time.
+export default function NewInterviewPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-2xl px-6 py-16 text-center text-white/40">Loading…</div>
+      }
+    >
+      <NewInterviewForm />
+    </Suspense>
   );
 }
