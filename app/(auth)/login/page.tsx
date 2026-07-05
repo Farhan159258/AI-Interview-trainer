@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -18,7 +18,7 @@ const schema = z.object({
 });
 type FormValues = z.infer<typeof schema>;
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [serverError, setServerError] = useState<string | null>(null);
@@ -69,5 +69,15 @@ export default function LoginPage() {
         </Link>
       </p>
     </GlassPanel>
+  );
+}
+
+// Next.js requires any component that calls useSearchParams() to be wrapped
+// in a <Suspense> boundary, or static prerendering fails at build time.
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<GlassPanel className="p-7 text-center text-sm text-white/40">Loading…</GlassPanel>}>
+      <LoginForm />
+    </Suspense>
   );
 }
